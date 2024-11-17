@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import os
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, time
 
 # Load environment variables
 load_dotenv()
@@ -105,7 +105,13 @@ df_tibber_prices_with_modes['mode'] = df_tibber_prices_with_modes['level'].map(l
 # rows before and after tomorrow
 nr_of_days_before_today, nr_of_days_after_today = calc_days_before_after()
 
-placeholder_row = [0, '2024-11-14', '00:00:00', 0, 0]
+placeholder_row = {
+    'total': 0.0,
+    'starts_at_date': pd.Timestamp('2024-11-14'),
+    'starts_at_time': time(0, 0).strftime('%H:%M:%S'),
+    'level': 'NORMAL',
+    'mode': 0
+}
 
 # Convert the placeholder_row into a DataFrame with the same column names as the original DataFrame
 pre_today_rows = pd.DataFrame(
@@ -117,11 +123,12 @@ post_today_rows = pd.DataFrame(
    columns=df_tibber_prices_with_modes.columns
 )
 
-# Concatenate the rows at the top and bottom
 df_week_profile = pd.concat(
-   [pre_today_rows,
-    df_tibber_prices_with_modes,
-    post_today_rows],
+    [
+        pre_today_rows if not pre_today_rows.empty else None, # If the df is empty, concat with None
+        df_tibber_prices_with_modes,
+        post_today_rows if not post_today_rows.empty else None, # If the df is empty, concat with None
+    ],
     ignore_index=True
 )
 
