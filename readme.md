@@ -9,9 +9,10 @@ I want to:
 - [X] Cleanup old comments
 - [X] Cleanup code in general
 - [X] Consistency in language (e.g. comments in Norwegian should be in English)
-- [ ] Get rid of this warning
+- [X] Get rid of this warning
   ```
   FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated. In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes. To retain the old behavior, exclude the relevant entries before the concat operation.
   df_week_profile = pd.concat([top_rows, df_prices_with_mode, bottom_rows], ignore_index=True)
   ```
   - [ ] The way the script is now, it overwrites all the days that have been calculated previously. This means that if I run the script on a Wednesday @ 1300, the script will overwrite the profile for the rest of the Wednesday. Is there maybe a way to first get the profile from the hub and then update only tomorrow?
+    - Maybe, I can get the week profile, read it as a dataframe, find tomorrows row (there should only be one because of how the logic is, replace that row with the correct rows that the script has calculated. This really should be a Github issue
