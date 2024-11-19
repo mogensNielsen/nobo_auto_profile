@@ -1,0 +1,4 @@
+pynobo==1.8.1
+python-dotenv==1.0.1
+requests==2.32.3
+pandas==2.2.3
