@@ -55,7 +55,7 @@ def update_tomorrows_profile(profile, day_number, new_values):
     day_to_update = day_number + 1
 
     updated_profile = profile.copy() # Without this, the function modifies both lists
-    updated_profile[day_to_update-1:day_to_update] = new_values # This doesn't work, it just insert the entire list into the Xth element
+    updated_profile[day_to_update-1:day_to_update] = new_values # CHANGE THIS: I want to update the element at today + 23 (I think) because today has one entry pr hour in the day
 
     return updated_profile
 
