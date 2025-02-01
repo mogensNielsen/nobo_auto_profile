@@ -39,14 +39,25 @@ headers = {
     "Authorization": f"Bearer {tibber_token}"
 }
 
-# Function used to calculate the nr of days before and after today
-# This is used to pad out the entire week in the profile
-def calc_days_before_after():
-   today = datetime.now().weekday()
-   tomorrow = (today + 1) % 7 # Ensure wraparound
-   days_before = tomorrow
-   days_after = 6 - tomorrow
-   return days_before, days_after
+# Function to update only only tomorrows entries in the current week profile
+def update_tomorrows_profile(profile, day_number, new_values):
+    """
+    Updates the profile for a specific day of the week.
+    :param profile: List containing the full week profile.
+    :param day_number: The day to update (Monday = 1, Sunday = 7).
+    :param new_values: List of new values to replace that day's profile.
+    :return: The updated profile list.
+    """
+    # Today's profile starts at element nr [today's weekday] (inclusive) and ends at [today's weekday + 23]
+    # Because a profile has one entry pr hour in the day
+
+    # I want to update tomorrow
+    day_to_update = day_number + 1
+
+    updated_profile = profile.copy() # Without this, the function modifies both lists
+    updated_profile[day_to_update-1:day_to_update] = new_values # This doesn't work, it just insert the entire list into the Xth element
+
+    return updated_profile
 
 # Checks if all environment variables are set
 if not all([tibber_url, tibber_token, tibber_home_id, hub_last_serial]):
@@ -115,39 +126,7 @@ async def main():
     df_tibber_prices_with_modes = df_tibber_prices.copy()
     df_tibber_prices_with_modes['mode'] = df_tibber_prices_with_modes['level'].map(level_to_mode)
 
-    # The complete profile needs to have one entry for midnight for each day of the week
-    # The profile data I have is only for tomorrow so I need to add a number of midnight
-    # rows before and after tomorrow
-    nr_of_days_before_today, nr_of_days_after_today = calc_days_before_after()
-
-    placeholder_row = {
-        'total': 0.0,
-        'starts_at_date': pd.Timestamp('2024-11-14'),
-        'starts_at_time': time(0, 0).strftime('%H:%M:%S'),
-        'level': 'NORMAL',
-        'mode': 0
-    }
-
-    # Convert the placeholder_row into a DataFrame with the same column names as the original DataFrame
-    pre_today_rows = pd.DataFrame(
-    [placeholder_row] * nr_of_days_before_today,
-    columns=df_tibber_prices_with_modes.columns
-    )
-    post_today_rows = pd.DataFrame(
-    [placeholder_row] * nr_of_days_after_today,
-    columns=df_tibber_prices_with_modes.columns
-    )
-
-    df_week_profile = pd.concat(
-        [
-            pre_today_rows if not pre_today_rows.empty else None, # If the df is empty, concat with None
-            df_tibber_prices_with_modes,
-            post_today_rows if not post_today_rows.empty else None, # If the df is empty, concat with None
-        ],
-        ignore_index=True
-    )
-
-    df_week_profile = df_week_profile.astype({
+    df_week_profile = df_tibber_prices_with_modes.astype({
         'total': 'float64',
         'starts_at_date': 'datetime64[ns]',
         'starts_at_time': 'string',
@@ -166,7 +145,22 @@ async def main():
     for _, row in df_week_profile.iterrows()
     ]
 
-    print("Tomorrows Week Profile:", list_week_profile)
+    # Get tomorrows weekday nr
+    today_weekday = datetime.today().isoweekday()
+
+    # update_tomorrows_profile
+    new_week_profile = update_tomorrows_profile(
+        current_week_profile['profile'],
+        today_weekday,
+        list_week_profile
+    )
+
+    print("Current Week Profile: ", current_week_profile)
+    print("Tomorrows profile: ", list_week_profile)
+    print("Updated Week Profile: ", new_week_profile)
+
+
+
 
     # --- Now reconnect to update the week profile ---
     hub = nobo(hub_last_serial, synchronous=False)
