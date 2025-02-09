@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 import os
 import requests
 import pandas as pd
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
+from collections import OrderedDict
 
 # Load environment variables
 load_dotenv()
@@ -39,25 +40,57 @@ headers = {
     "Authorization": f"Bearer {tibber_token}"
 }
 
-# Function to update only only tomorrows entries in the current week profile
-def update_tomorrows_profile(profile, day_number, new_values):
-    """
-    Updates the profile for a specific day of the week.
-    :param profile: List containing the full week profile.
-    :param day_number: The day to update (Monday = 1, Sunday = 7).
-    :param new_values: List of new values to replace that day's profile.
-    :return: The updated profile list.
-    """
-    # Today's profile starts at element nr [today's weekday] (inclusive) and ends at [today's weekday + 23]
-    # Because a profile has one entry pr hour in the day
+# Define the mapping dictionary
+# This is used to map between price level and heating mode in Nobo
+# 0: ECO
+# 1: COMFORT
+# 2: AWAY
+# 4: OFF
+level_to_mode = {
+    'VERY_CHEAP': 1,
+    'CHEAP': 1,
+    'NORMAL': 0,
+    'EXPENSIVE': 2,
+    'VERY_EXPENSIVE': 2
+}
 
-    # I want to update tomorrow
-    day_to_update = day_number + 1
+def add_weekdays_to_profile(data):
+    # Second argument is the default. I.e. an empty list
+    profile = data.get('profile', [])
+    days_of_week =['Monday', 'Tueday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-    updated_profile = profile.copy() # Without this, the function modifies both lists
-    updated_profile[day_to_update-1:day_to_update] = new_values # CHANGE THIS: I want to update the element at today + 23 (I think) because today has one entry pr hour in the day
+    # Identify the start indexes for each day
+    day_indexes = [i for i, v in enumerate(profile) if v.startswith('0000')]
 
-    return updated_profile
+    if len(day_indexes) != 7:
+        raise ValueError('Expected exactly 7 days in the profile data')
+
+    # Create a dictionary mapping each weekday to its corresponding values
+    weekday_profile = OrderedDict()
+    for i in range(7):
+        weekday = days_of_week[i]
+        start_index = day_indexes[i]
+        end_index = day_indexes[i + 1] if i < 6 else len(profile)
+        weekday_profile[weekday] = profile[start_index:end_index]
+
+    return weekday_profile
+
+def create_hourly_dict(df):
+    hourly_dict = OrderedDict()
+
+    # Convert date to weekday
+    # The `to_datetime` ensures that the value is of type datetime before getting the weekday with `strftime`
+    weekday = pd.to_datetime(df.iloc[0]['starts_at_date']).strftime('%A')
+
+    # Extract hourly values for the weekday
+    hourly_values = [
+        f'{row["starts_at_time"][:2]}00{row["mode"]}'
+        for _, row in df.iterrows()
+    ]
+
+    hourly_dict[weekday] = hourly_values
+
+    return hourly_dict
 
 # Checks if all environment variables are set
 if not all([tibber_url, tibber_token, tibber_home_id, hub_last_serial]):
@@ -74,8 +107,10 @@ async def main():
     # Disconnect from the hub before fetching prices
     await hub.stop()
 
-    # Get Tibber prices and create a week profile
+    # Add weekdays to the current week profile
+    current_weekday_profile = add_weekdays_to_profile(current_week_profile)
 
+    # Get Tibber prices and create a week profile
     tibber_response = requests.post(
         tibber_url,
         json={'query': tibber_query},
@@ -108,20 +143,6 @@ async def main():
     # Select and rename columns as needed
     df_tibber_prices = df_tibber_prices[['total', 'starts_at_date', 'starts_at_time', 'level']]
 
-    # Define the mapping dictionary
-    # This is used to map between price level and heating mode in Nobo
-    # 0: ECO
-    # 1: COMFORT
-    # 2: AWAY
-    # 4: OFF
-    level_to_mode = {
-        'VERY_CHEAP': 1,
-        'CHEAP': 1,
-        'NORMAL': 0,
-        'EXPENSIVE': 2,
-        'VERY_EXPENSIVE': 2
-    }
-
     # Create the new DataFrame with the mode column added
     df_tibber_prices_with_modes = df_tibber_prices.copy()
     df_tibber_prices_with_modes['mode'] = df_tibber_prices_with_modes['level'].map(level_to_mode)
@@ -145,20 +166,21 @@ async def main():
     for _, row in df_week_profile.iterrows()
     ]
 
-    # Get tomorrows weekday nr
-    today_weekday = datetime.today().isoweekday()
+    dict_tibber = create_hourly_dict(df_week_profile)
+    print('Tomorrows profile')
+    for weekday, values in dict_tibber.items():
+        print(f'{weekday}: {values}')
 
-    # update_tomorrows_profile
-    new_week_profile = update_tomorrows_profile(
-        current_week_profile['profile'],
-        today_weekday,
-        list_week_profile
-    )
+    print(f'-----\nCurrent profile')
+    for weekday, values in current_weekday_profile.items():
+        print(f'{weekday}: {values}')
 
-    print("Current Week Profile: ", current_week_profile)
-    print("Tomorrows profile: ", list_week_profile)
-    print("Updated Week Profile: ", new_week_profile)
+    '''
+    ## TODO:
+    - Update `current_weekday_profile` by overwriting [weekday] with the values for the same weekday in `dict_tibber`
+    '''
 
+    exit()
 
 
 
