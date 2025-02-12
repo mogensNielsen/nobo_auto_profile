@@ -57,7 +57,7 @@ level_to_mode = {
 def add_weekdays_to_profile(data):
     # Second argument is the default. I.e. an empty list
     profile = data.get('profile', [])
-    days_of_week =['Monday', 'Tueday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    days_of_week =['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
     # Identify the start indexes for each day
     day_indexes = [i for i, v in enumerate(profile) if v.startswith('0000')]
@@ -171,14 +171,16 @@ async def main():
     for weekday, values in dict_tibber.items():
         print(f'{weekday}: {values}')
 
-    print(f'-----\nCurrent profile')
-    for weekday, values in current_weekday_profile.items():
-        print(f'{weekday}: {values}')
+    # print(f'-----\nCurrent profile')
+    # for weekday, values in current_weekday_profile.items():
+    #     print(f'{weekday}: {values}')
+    print(current_weekday_profile['Thursday'].values())
 
-    '''
-    ## TODO:
-    - Update `current_weekday_profile` by overwriting [weekday] with the values for the same weekday in `dict_tibber`
-    '''
+    ###
+    #    TODO:
+    #       Det virker ikke som om innholdet i `current_weekday_profile` er som jeg forventet.
+    #       Jeg hadde vel egentlig tenkt meg en dict med ukedag som key
+    ####
 
     exit()
 
