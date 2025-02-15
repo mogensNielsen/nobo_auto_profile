@@ -167,19 +167,21 @@ async def main():
     ]
 
     dict_tibber = create_hourly_dict(df_week_profile)
-    print('Tomorrows profile')
-    for weekday, values in dict_tibber.items():
-        print(f'{weekday}: {values}')
 
-    # print(f'-----\nCurrent profile')
-    # for weekday, values in current_weekday_profile.items():
-    #     print(f'{weekday}: {values}')
-    print(current_weekday_profile['Thursday'].values())
+    print(f'-----\nCurrent profile for tomorrow')
+    print(current_weekday_profile['Saturday'])
+    print(dict_tibber['Saturday'])
+
+    current_weekday_profile['Saturday'] = dict_tibber['Saturday']
+    print(f'\n\n-----\nNew week profile')
+    # print(current_weekday_profile)
+    # print(type(current_weekday_profile))
+    for weekday, values in current_weekday_profile.items():
+        print(f'{weekday}: {values}')
 
     ###
     #    TODO:
-    #       Det virker ikke som om innholdet i `current_weekday_profile` er som jeg forventet.
-    #       Jeg hadde vel egentlig tenkt meg en dict med ukedag som key
+    #       Ferdigstill lista som Nobo trenger
     ####
 
     exit()
