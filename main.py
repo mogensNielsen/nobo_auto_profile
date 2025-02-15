@@ -155,38 +155,33 @@ async def main():
         'mode': 'int64'
     })
 
-    # Create the list that is needed to set a week profile
-    # Each item in the list is in the format [HHMML]
-    # where HH is the hour, MM is minutes and L is the mode (level) (ECO, COMFORT etc.)
-    list_week_profile = [
-    f'{row["starts_at_time"][:2]}{row["starts_at_time"][3:5]}{row["mode"]}'
-    # iterrows returns index and row values as column names
-    # The _ is a placeholder for the row's index
-    # It basically means "I'm acknowledging this part of the output but don’t need to do anything with it."
-    for _, row in df_week_profile.iterrows()
-    ]
+    # # Create the list that is needed to set a week profile
+    # # Each item in the list is in the format [HHMML]
+    # # where HH is the hour, MM is minutes and L is the mode (level) (ECO, COMFORT etc.)
+    # list_week_profile = [
+    # f'{row["starts_at_time"][:2]}{row["starts_at_time"][3:5]}{row["mode"]}'
+    # # iterrows returns index and row values as column names
+    # # The _ is a placeholder for the row's index
+    # # It basically means "I'm acknowledging this part of the output but don’t need to do anything with it."
+    # for _, row in df_week_profile.iterrows()
+    # ]
 
     dict_tibber = create_hourly_dict(df_week_profile)
 
-    print(f'-----\nCurrent profile for tomorrow')
-    print(current_weekday_profile['Saturday'])
-    print(dict_tibber['Saturday'])
+    todays_date = datetime.today()
+    tomorrows_date = todays_date + timedelta(days=1)
+    tomorrows_weekday = tomorrows_date.strftime('%A')
 
-    current_weekday_profile['Saturday'] = dict_tibber['Saturday']
-    print(f'\n\n-----\nNew week profile')
-    # print(current_weekday_profile)
-    # print(type(current_weekday_profile))
+    current_weekday_profile[tomorrows_weekday] = dict_tibber[tomorrows_weekday]
+    print(type(current_weekday_profile))
+    print(current_weekday_profile)
+
+    list_week_profile = []
     for weekday, values in current_weekday_profile.items():
-        print(f'{weekday}: {values}')
+        for value in values:
+            list_week_profile.append(value)
 
-    ###
-    #    TODO:
-    #       Ferdigstill lista som Nobo trenger
-    ####
-
-    exit()
-
-
+    print(f'List: {list_week_profile}')
 
     # --- Now reconnect to update the week profile ---
     hub = nobo(hub_last_serial, synchronous=False)
@@ -198,12 +193,12 @@ async def main():
 
     update(hub)
 
-    # # Update the week profile
-    # await hub.async_update_week_profile(
-    #     week_profile_id='24',
-    #     name='python_test',
-    #     profile=list_week_profile
-    # )
+    # Update the week profile
+    await hub.async_update_week_profile(
+        week_profile_id='24',
+        name='python_test',
+        profile=list_week_profile
+    )
 
     hub.register_callback(callback=update)
 
