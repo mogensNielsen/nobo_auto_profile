@@ -133,6 +133,16 @@ async def main():
     except (KeyError, TypeError) as e:
         raise ValueError(f"Unexpected response structure: {e}")
 
+    # Check if there are any prices in the response
+    try:
+        if not dict_tibber_response['data']['viewer']['home']['currentSubscription']['priceInfo']['tomorrow']:
+            print("No prices available yet")
+            exit(0)
+    except KeyError:
+        print("Price information is missing, likely not ready yet")
+        exit(0)
+
+
     df_tibber_prices = pd.DataFrame(dict_tibber_prices)
 
     # Convert 'startsAt' to datetime and extract date and time components
