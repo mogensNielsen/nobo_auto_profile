@@ -142,7 +142,6 @@ async def main():
         print("Price information is missing, likely not ready yet")
         exit(0)
 
-
     df_tibber_prices = pd.DataFrame(dict_tibber_prices)
 
     # Convert 'startsAt' to datetime and extract date and time components
@@ -183,15 +182,11 @@ async def main():
     tomorrows_weekday = tomorrows_date.strftime('%A')
 
     current_weekday_profile[tomorrows_weekday] = dict_tibber[tomorrows_weekday]
-    print(type(current_weekday_profile))
-    print(current_weekday_profile)
 
     list_week_profile = []
     for weekday, values in current_weekday_profile.items():
         for value in values:
             list_week_profile.append(value)
-
-    print(f'List: {list_week_profile}')
 
     # --- Now reconnect to update the week profile ---
     hub = nobo(hub_last_serial, synchronous=False)
